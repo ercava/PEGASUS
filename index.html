@@ -651,6 +651,7 @@
     </div>
   </div>
 
+  <script src="assets/data.js"></script>
   <script>
     // State management
     let students = [];
@@ -848,12 +849,33 @@
       return items;
     }
 
+    let _dd = null;
+    function getDashboardData() {
+      if (!_dd) {
+        try {
+          const binaryString = atob(window.__DASHBOARD_DATA);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const decodedText = new TextDecoder('utf-8').decode(bytes);
+          _dd = JSON.parse(decodedText);
+        } catch (e) {
+          console.error("Failed to decode payload", e);
+          _dd = { files: {} };
+        }
+      }
+      return _dd;
+    }
+
     // Initialize application
     async function init() {
       try {
+        const raw = getDashboardData();
+        
         // Fetch student links CSV
-        const projectLinkRes = await fetch('materials/PROJECT LINK.csv');
-        const projectLinkText = await projectLinkRes.text();
+        const projectLinkText = raw.project_link_csv || '';
         const parsedProjectLink = parseCSV(projectLinkText);
         
         // Headers map
@@ -869,8 +891,7 @@
         }).filter(s => s.NISN && s.NAME);
 
         // Fetch generic content CSV
-        const contentRes = await fetch('data/content.csv');
-        const contentText = await contentRes.text();
+        const contentText = raw.content_csv || '';
         const parsedContent = parseCSV(contentText);
         const contentHeaders = parsedContent[0].map(h => h.trim());
         contents = parsedContent.slice(1).map(row => {
@@ -882,8 +903,7 @@
         }).filter(c => c.item_id);
 
         // Fetch superlist md
-        const superlistRes = await fetch('materials/angkatan29_superlist.md');
-        const superlistText = await superlistRes.text();
+        const superlistText = raw.superlist_md || '';
         superlist = parseSuperlist(superlistText);
 
         // Show login screen
@@ -891,7 +911,7 @@
         document.getElementById('login-screen').classList.add('active');
       } catch (err) {
         console.error(err);
-        alert('Failed to load database. Please ensure files are present in materials/ and data/ directories.');
+        alert('Failed to load database from payload.');
       }
     }
 
@@ -902,8 +922,8 @@
       try {
         let content = fileContentsCache[file];
         if (!content) {
-          const res = await fetch(`materials/${file}`);
-          content = await res.text();
+          const raw = getDashboardData();
+          content = raw.files[file] || '';
           fileContentsCache[file] = content;
         }
 
