@@ -10,6 +10,7 @@ LINKS = os.path.join(BASE, "Untitled spreadsheet - Link Penting.csv")
 SERT = os.path.join(BASE, "Untitled spreadsheet - Sertifikat(1).csv")
 CONTACTS = os.path.join(BASE, "contacts.csv")
 SISWA = os.path.join(BASE, "Ercava Development Program - Sheet29(1).csv")
+LINKEDIN = os.path.join(os.path.dirname(BASE), "linklink! - Sheet3.csv")
 OUT = os.path.join(BASE, "data.js")
 
 def clean_wa(phone):
@@ -72,6 +73,17 @@ def build():
                     links.append({"label": "Telepon", "url": f"tel:{phone}"})
                 data.append({"title": name, "category": "Kontak", "meta": meta, "links": links})
 
+    ln_map = {}
+    if os.path.exists(LINKEDIN):
+        with open(LINKEDIN, 'r', encoding='utf-8') as f:
+            r = csv.reader(f); next(r, None)
+            for row in r:
+                if len(row) >= 2:
+                    name_key = row[0].strip().lower()
+                    url_val = row[1].strip()
+                    if name_key and url_val:
+                        ln_map[name_key] = url_val
+
     if os.path.exists(SISWA):
         seen = set()
         with open(SISWA, 'r', encoding='utf-8') as f:
@@ -90,6 +102,11 @@ def build():
                 if nick: md.append(f"({nick})")
                 if birth: md.append(birth)
                 if ig: links.append({"label": "Instagram", "url": f"https://instagram.com/{ig.replace('@','')}"})
+                
+                ln_url = ln_map.get(name.lower())
+                if ln_url:
+                    links.append({"label": "LinkedIn", "url": ln_url})
+                
                 gs = "Laki-laki" if jk == "L" else "Perempuan" if jk == "P" else jk
                 ms = " · ".join(md) if md else "Siswa A29"
                 if gs: ms += f" | {gs}"
